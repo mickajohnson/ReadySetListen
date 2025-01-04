@@ -6,17 +6,138 @@ import { useRouter } from "next/router";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import SearchArtist from "@/components/SearchArtist";
+import SetlistPicker from "@/components/SetlistPicker";
+import axios from "axios";
+import SetlistExplorer from "@/components/SetlistExplorer";
 
 const inter = Inter({ subsets: ["latin"] });
+
+
+
+function averageSetLength(sets) {
+  let avg = 0;
+  const buffer = 2;
+  for (let i = 0; i < sets.length; i++) {
+    if (Array.isArray(sets[i].set)) {
+      avg += sets[i].set.length;
+    }
+  }
+  avg /= sets.length;
+  return Math.ceil(avg) + buffer;
+}
+
+function setlistSorter(setlistData) {
+  const averages = { songs: [], avgLength: 0 };
+  let sortedSetlist = setlistData
+  .filter(setlist => typeof setlist.sets.set === 'object' || Array.isArray(setlist.sets.set));
+  if (sortedSetlist.length === 0) {
+    return false;
+  }
+  sortedSetlist = sortedSetlist.map(setlist => {
+    const concert = {
+      artist: setlist.artist['name'],
+      set: [],
+      title: `${setlist['eventDate']} - ${setlist.venue.city['name']} - ${setlist.venue.city['stateCode']}`
+    };
+    if (Array.isArray(setlist.sets.set)) {
+      if (setlist.sets.set.length < 1) {
+        return null;
+      }
+      for (let i = 0; i < setlist.sets.set.length; i++) {
+        concert.set = concert.set.concat(setlist.sets.set[i].song);
+      }
+    } else if (typeof setlist.sets.set === 'object') {
+      concert.set = setlist.sets.set.song;
+    }
+    for (let i = 0; i < concert.set.length; i++) {
+      const found = averages.songs.findIndex(song => {
+        return song['name'] === concert.set[i]['name'];
+      });
+      if (found !== -1) {
+        averages.songs[found].occurrence += 1;
+        averages.songs[found].avgPlace.push(i);
+      } else {
+        concert.set[i].occurrence = 1;
+        concert.set[i].avgPlace = [i];
+        averages.songs.push(concert.set[i]);
+      }
+    }
+    return concert;
+  }).filter(concert => concert);
+  const averageSet = calcTypicalSet(averages, sortedSetlist);
+  sortedSetlist.unshift({
+    set: averageSet,
+    title: `A Typical Recent ${sortedSetlist[1].artist} Set`,
+    artist: sortedSetlist[1].artist
+  });
+  return sortedSetlist;
+}
+
+function calcTypicalSet(averages, setlists) {
+  averages.avgLength = averageSetLength(setlists);
+  averages.songs.sort((a, b) => {
+    if (a.occurrence < b.occurrence) {
+      return 1;
+    }
+    if (a.occurrence > b.occurrence) {
+      return -1;
+    }
+    return 0;
+  });
+  let averageSet = averages.songs.slice(0, averages.avgLength);
+  averageSet = averageSet.map(song => {
+    song.avgPlace = song.avgPlace.reduce((total, place) => { return total + place; });
+    song.avgPlace /= song.occurrence;
+    return song;
+  });
+  averageSet.sort((a, b) => {
+    if (a.avgPlace > b.avgPlace) {
+      return 1;
+    }
+    if (a.avgPlace < b.avgPlace) {
+      return -1;
+    }
+    return 0;
+  });
+  return averageSet;
+}
+
+const SPOTIFY_LOGIN_LINK = `https://accounts.spotify.com/authorize?client_id=${process.env.PUBLIC_NEXT_SPOTIFY_CLIENT_ID}&redirect_uri=${process.env.PUBLIC_NEXT_CALLBACK_URL}&scope=user-read-private%20user-read-email%20playlist-modify-public%20playlist-read-private%20playlist-modify-private&response_type=token&state=${process.env.PUBLIC_NEXT_SPOTIFY_STATE}`
 
 export default function Home() {
   const { asPath } = useRouter();
   const [hash, setHash] = useState(null);
   const [selectedArtist, setSelectedArtist] = useState(null);
+  const [selectedSetlist, setSelectedSetlist] = useState(null);
+  const [setlists, setSetlists] = useState(null)
+
+  useEffect(() => {
+    const getSetlists = async () => {
+     
+        setSetlists(null)
+        // To do error handling here
+        const {data: setlistData} = await axios.get(`/api/setlists?artist=${selectedArtist}`)
+        const formattedSetlists = setlistSorter(setlistData.setlists);
+
+        setSetlists(formattedSetlists)
+
+
+      }
+    
+
+    if (selectedArtist) {
+      getSetlists()
+    }
+  }, [selectedArtist])
 
   useEffect(() => {
     setHash(asPath.split("#")[1]);
   }, [asPath]);
+
+  const onSetArtist = (artistId) => {
+    setSelectedSetlist(null)
+    setSelectedArtist(artistId)
+  }
 
   return (
     <>
@@ -36,84 +157,46 @@ export default function Home() {
         <div id="main-body">
           {!hash ? (
             <div id="login-container">
-              <div class="sub-container">
-                {/* <a class="login" href="https://accounts.spotify.com/authorize?client_id=24b64d7417e944088e1870eb5a808ff8&redirect_uri=https:%2F%2Fsetlisten%2Eherokuapp%2Ecom%2Fcallback&scope=user-read-private%20user-read-email%20playlist-modify-public%20playlist-read-private%20playlist-modify-private&response_type=token&state=123">
-      Login to Spotify
-      </a>  */}
+              <div className="sub-container">
                 <a
-                  class="login"
-                  href="https://accounts.spotify.com/authorize?client_id=24b64d7417e944088e1870eb5a808ff8&redirect_uri=http:%2F%2Flocalhost%3A2401%2Fcallback&scope=user-read-private%20user-read-email%20playlist-modify-public%20playlist-read-private%20playlist-modify-private&response_type=token&state=123"
+                  className="login"
+                  href={SPOTIFY_LOGIN_LINK}
                 >
                   Login to Spotify
                 </a>
               </div>
             </div>
           ) : (
-            <SearchArtist
-              selectedArtist={selectedArtist}
-              setSelectedArtist={setSelectedArtist}
-            />
+            <>
+              <SearchArtist
+                selectedArtist={selectedArtist}
+                setSelectedArtist={onSetArtist}
+              />
+                {setlists ? <SetlistPicker setlists={setlists} selectedSetlist={selectedSetlist} setSelectedSetlist={setSelectedSetlist} /> : null}
+                {selectedSetlist !== null ? <SetlistExplorer selectedSetlist={setlists[selectedSetlist].set} /> : null}
+            </>
           )}
-          {/* 
-  <div id="setlist-select-container" ng-if="setlists">
-    <div class="sub-container">
-      <div class="list-box">
-        <ul>
-          <li
-            ng-class="{selected_setlist: $index===selectedSetlist}"
-            ng-repeat="setlist in setlists"
-            ng-click="setSelectedSetlist($index)"
-          >
-            {{setlist.title}}
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
-  <div id="setlist-container" ng-if="selectedSetlist !== undefined">
-    <div
-      ng-if="playlistURI === 'spotify:user:spotify:playlist:3rgsDhGHZxZ9sB9DQWQfuf'"
-    >
-      <div class="list-box">
-        <ol>
-          <li ng-repeat="song in setlists[selectedSetlist].set">
-            {{song["name"]}}
-          </li>
-        </ol>
-      </div>
-      <button
-        type="button"
-        name="button"
-        ng-click="createPlaylist(setlists[selectedSetlist])"
-      >
-        Create Playlist
-      </button>
-    </div>
-    <iframe
-      ng-show="playlistURI !== 'spotify:user:spotify:playlist:3rgsDhGHZxZ9sB9DQWQfuf'"
-      ng-src="{{getIframeSrc(playlistURI)}}"
-      frameborder="0"
-      allowtransparency="true"
-    ></iframe>
-  </div> */}
+         
         </div>
         <div id="footer">
-          <div class="footer-div footer-div-1">
-            <p ng-if="searchable">
-              <a
-                class="login"
-                href="https://accounts.spotify.com/authorize?client_id=24b64d7417e944088e1870eb5a808ff8&redirect_uri=https:%2F%2Fsetlisten%2Eherokuapp%2Ecom%2Fcallback&scope=user-read-private%20user-read-email%20playlist-modify-public%20playlist-read-private%20playlist-modify-private&response_type=token&state=123"
-              >
-                Log Back in
-              </a>
-            </p>
+          <div className="footer-div footer-div-1">
+           {hash ? (
+              <p>
+                <a
+                  className="login"
+                  href={SPOTIFY_LOGIN_LINK}
+                >
+                  Log Back in
+                </a>
+              </p>
+            ): null}
           </div>
-          <div class="footer-div footer-div-2">
+          <div className="footer-div footer-div-2">
             <p>
               Made Possible With:
               <a href="http://www.setlist.fm">Setlist.fm</a>,
-              <a href="https://musicbrainz.org/">MusicBrainz</a>, &
-              <a href="https://www.spotify.com/us/">Spotify</a>
+              <a href="https://musicbrainz.org/"> MusicBrainz</a>, &
+              <a href="https://www.spotify.com/us/"> Spotify</a>
             </p>
           </div>
         </div>

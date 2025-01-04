@@ -1,3 +1,7 @@
 All ng stuff
 Add chakra
 Make things accessible
+
+
+
+Error handling for all api stuff

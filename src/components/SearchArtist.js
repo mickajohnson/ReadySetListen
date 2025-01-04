@@ -12,17 +12,16 @@ const SearchArtist = ({ selectedArtist, setSelectedArtist }) => {
       `https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(
         artist
       )}&fmt=json`,
-      {
-        headers: {
-          "User-Agent": "SetListen/0.0.1 ( mickalsipjohnson@gmail.com )",
-        },
-      }
+      // {
+      //   headers: {
+      //     "User-Agent": "ReadySetListen/0.0.1 ( mickalsipjohnson@gmail.com )",
+      //   },
+      // }
     );
 
     if (response.status === 503) {
       //   res.json({ error: "Servers Busy" });
     } else if (response.status === 200) {
-      console.log(response);
       setArtists(response.data.artists);
     } else {
       //   res.json({ error: "Server Error" });
@@ -39,7 +38,7 @@ const SearchArtist = ({ selectedArtist, setSelectedArtist }) => {
 
   return (
     <div id="search-container" ng-if="searchable">
-      <div class="sub-container">
+      <div className="sub-container">
         <label>Search artist to create setlist-based Spotify playlist</label>
         <input
           onKeyDown={searchArtist}
