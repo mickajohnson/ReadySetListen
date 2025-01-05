@@ -9,3 +9,4 @@ All error handling (search .error in other codebase)
 
 Error handling for all api stuff
 Stuff happening for playlist uri with specific code in other one
+readme

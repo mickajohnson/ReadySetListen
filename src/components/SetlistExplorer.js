@@ -57,8 +57,8 @@ const SetlistExplorer = ({ selectedSetlist, playlistUri, setPlaylistUri }) => {
         <div>
           <div className="list-box">
             <ol>
-              {selectedSetlist.set.map((song) => (
-                <li>{song.name}</li>
+              {selectedSetlist.set.map((song, index) => (
+                <li key={`${song.name}-${index}`}>{song.name}</li> // TODO Fix index
               ))}
             </ol>
           </div>
