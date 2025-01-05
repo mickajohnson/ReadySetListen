@@ -11,7 +11,7 @@ const SearchArtist = ({ selectedArtist, setSelectedArtist }) => {
     const response = await axios.get(
       `https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(
         artist
-      )}&fmt=json`,
+      )}&fmt=json`
       // {
       //   headers: {
       //     "User-Agent": "ReadySetListen/0.0.1 ( mickalsipjohnson@gmail.com )",

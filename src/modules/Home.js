@@ -12,8 +12,6 @@ import SetlistExplorer from "@/components/SetlistExplorer";
 
 const inter = Inter({ subsets: ["latin"] });
 
-
-
 function averageSetLength(sets) {
   let avg = 0;
   const buffer = 2;
@@ -28,47 +26,51 @@ function averageSetLength(sets) {
 
 function setlistSorter(setlistData) {
   const averages = { songs: [], avgLength: 0 };
-  let sortedSetlist = setlistData
-  .filter(setlist => typeof setlist.sets.set === 'object' || Array.isArray(setlist.sets.set));
+  let sortedSetlist = setlistData.filter(
+    (setlist) =>
+      typeof setlist.sets.set === "object" || Array.isArray(setlist.sets.set)
+  );
   if (sortedSetlist.length === 0) {
     return false;
   }
-  sortedSetlist = sortedSetlist.map(setlist => {
-    const concert = {
-      artist: setlist.artist['name'],
-      set: [],
-      title: `${setlist['eventDate']} - ${setlist.venue.city['name']} - ${setlist.venue.city['stateCode']}`
-    };
-    if (Array.isArray(setlist.sets.set)) {
-      if (setlist.sets.set.length < 1) {
-        return null;
+  sortedSetlist = sortedSetlist
+    .map((setlist) => {
+      const concert = {
+        artist: setlist.artist["name"],
+        set: [],
+        title: `${setlist["eventDate"]} - ${setlist.venue.city["name"]} - ${setlist.venue.city["stateCode"]}`,
+      };
+      if (Array.isArray(setlist.sets.set)) {
+        if (setlist.sets.set.length < 1) {
+          return null;
+        }
+        for (let i = 0; i < setlist.sets.set.length; i++) {
+          concert.set = concert.set.concat(setlist.sets.set[i].song);
+        }
+      } else if (typeof setlist.sets.set === "object") {
+        concert.set = setlist.sets.set.song;
       }
-      for (let i = 0; i < setlist.sets.set.length; i++) {
-        concert.set = concert.set.concat(setlist.sets.set[i].song);
+      for (let i = 0; i < concert.set.length; i++) {
+        const found = averages.songs.findIndex((song) => {
+          return song["name"] === concert.set[i]["name"];
+        });
+        if (found !== -1) {
+          averages.songs[found].occurrence += 1;
+          averages.songs[found].avgPlace.push(i);
+        } else {
+          concert.set[i].occurrence = 1;
+          concert.set[i].avgPlace = [i];
+          averages.songs.push(concert.set[i]);
+        }
       }
-    } else if (typeof setlist.sets.set === 'object') {
-      concert.set = setlist.sets.set.song;
-    }
-    for (let i = 0; i < concert.set.length; i++) {
-      const found = averages.songs.findIndex(song => {
-        return song['name'] === concert.set[i]['name'];
-      });
-      if (found !== -1) {
-        averages.songs[found].occurrence += 1;
-        averages.songs[found].avgPlace.push(i);
-      } else {
-        concert.set[i].occurrence = 1;
-        concert.set[i].avgPlace = [i];
-        averages.songs.push(concert.set[i]);
-      }
-    }
-    return concert;
-  }).filter(concert => concert);
+      return concert;
+    })
+    .filter((concert) => concert);
   const averageSet = calcTypicalSet(averages, sortedSetlist);
   sortedSetlist.unshift({
     set: averageSet,
     title: `A Typical Recent ${sortedSetlist[1].artist} Set`,
-    artist: sortedSetlist[1].artist
+    artist: sortedSetlist[1].artist,
   });
   return sortedSetlist;
 }
@@ -85,8 +87,10 @@ function calcTypicalSet(averages, setlists) {
     return 0;
   });
   let averageSet = averages.songs.slice(0, averages.avgLength);
-  averageSet = averageSet.map(song => {
-    song.avgPlace = song.avgPlace.reduce((total, place) => { return total + place; });
+  averageSet = averageSet.map((song) => {
+    song.avgPlace = song.avgPlace.reduce((total, place) => {
+      return total + place;
+    });
     song.avgPlace /= song.occurrence;
     return song;
   });
@@ -102,42 +106,50 @@ function calcTypicalSet(averages, setlists) {
   return averageSet;
 }
 
-const SPOTIFY_LOGIN_LINK = `https://accounts.spotify.com/authorize?client_id=${process.env.PUBLIC_NEXT_SPOTIFY_CLIENT_ID}&redirect_uri=${process.env.PUBLIC_NEXT_CALLBACK_URL}&scope=user-read-private%20user-read-email%20playlist-modify-public%20playlist-read-private%20playlist-modify-private&response_type=token&state=${process.env.PUBLIC_NEXT_SPOTIFY_STATE}`
+const SPOTIFY_LOGIN_LINK = `https://accounts.spotify.com/authorize?client_id=${
+  process.env.NEXT_PUBLIC__SPOTIFY_CLIENT_ID
+}&redirect_uri=${encodeURIComponent(
+  process.env.NEXT_PUBLIC__CALLBACK_URL
+)}&scope=user-read-private%20user-read-email%20playlist-modify-public%20playlist-read-private%20playlist-modify-private&response_type=token&state=${
+  process.env.NEXT_PUBLIC__SPOTIFY_STATE
+}`;
 
 export default function Home() {
   const { asPath } = useRouter();
   const [hash, setHash] = useState(null);
-  const [selectedArtist, setSelectedArtist] = useState(null);
+  // const [selectedArtist, setSelectedArtist] = useState(null);
+  const [selectedArtist, setSelectedArtist] = useState(
+    "9e53f84d-ef44-4c16-9677-5fd4d78cbd7d"
+  );
   const [selectedSetlist, setSelectedSetlist] = useState(null);
-  const [setlists, setSetlists] = useState(null)
+  const [setlists, setSetlists] = useState(null);
+  const [playlistUri, setPlaylistUri] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const getSetlists = async () => {
-     
-        setSetlists(null)
-        // To do error handling here
-        const {data: setlistData} = await axios.get(`/api/setlists?artist=${selectedArtist}`)
-        const formattedSetlists = setlistSorter(setlistData.setlists);
+      setSetlists(null);
+      const { data: setlistData } = await axios.get(
+        `/api/setlists?artist=${selectedArtist}`
+      );
+      const formattedSetlists = setlistSorter(setlistData.setlists);
 
-        setSetlists(formattedSetlists)
-
-
-      }
-    
+      setSetlists(formattedSetlists);
+    };
 
     if (selectedArtist) {
-      getSetlists()
+      getSetlists();
     }
-  }, [selectedArtist])
+  }, [selectedArtist]);
 
   useEffect(() => {
     setHash(asPath.split("#")[1]);
   }, [asPath]);
 
   const onSetArtist = (artistId) => {
-    setSelectedSetlist(null)
-    setSelectedArtist(artistId)
-  }
+    setSelectedSetlist(null);
+    setSelectedArtist(artistId);
+  };
 
   return (
     <>
@@ -148,20 +160,17 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>
-        {/* <div id="header">
+        <div id="header">
           <img id="logo" src="../logo.png" />
         </div>
         <div id="error">
-          <p>{{ error }}</p>
-        </div> */}
+          <p>{error}</p>
+        </div>
         <div id="main-body">
           {!hash ? (
             <div id="login-container">
               <div className="sub-container">
-                <a
-                  className="login"
-                  href={SPOTIFY_LOGIN_LINK}
-                >
+                <a className="login" href={SPOTIFY_LOGIN_LINK}>
                   Login to Spotify
                 </a>
               </div>
@@ -172,24 +181,32 @@ export default function Home() {
                 selectedArtist={selectedArtist}
                 setSelectedArtist={onSetArtist}
               />
-                {setlists ? <SetlistPicker setlists={setlists} selectedSetlist={selectedSetlist} setSelectedSetlist={setSelectedSetlist} /> : null}
-                {selectedSetlist !== null ? <SetlistExplorer selectedSetlist={setlists[selectedSetlist].set} /> : null}
+              {setlists ? (
+                <SetlistPicker
+                  setlists={setlists}
+                  selectedSetlist={selectedSetlist}
+                  setSelectedSetlist={setSelectedSetlist}
+                />
+              ) : null}
+              {selectedSetlist !== null ? (
+                <SetlistExplorer
+                  selectedSetlist={setlists[selectedSetlist]}
+                  playlistUri={playlistUri}
+                  setPlaylistUri={setPlaylistUri}
+                />
+              ) : null}
             </>
           )}
-         
         </div>
         <div id="footer">
           <div className="footer-div footer-div-1">
-           {hash ? (
+            {hash ? (
               <p>
-                <a
-                  className="login"
-                  href={SPOTIFY_LOGIN_LINK}
-                >
+                <a className="login" href={SPOTIFY_LOGIN_LINK}>
                   Log Back in
                 </a>
               </p>
-            ): null}
+            ) : null}
           </div>
           <div className="footer-div footer-div-2">
             <p>
