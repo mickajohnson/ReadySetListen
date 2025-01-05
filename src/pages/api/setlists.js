@@ -1,8 +1,11 @@
 import axios from "axios";
 
 export default async function handler(req, res) {
-  console.log(req.query);
   const { artist } = req.query;
+
+  if (!artist) {
+    res.status(500).json({ error: "No Artist Specified" });
+  }
 
   const response = await axios.get(
     `https://api.setlist.fm/rest/1.0/artist/${encodeURIComponent(
@@ -15,8 +18,6 @@ export default async function handler(req, res) {
       },
     }
   );
-
-  console.log(response);
 
   if (response.status === 503) {
     res.status(503).json({ error: "Servers Busy" });

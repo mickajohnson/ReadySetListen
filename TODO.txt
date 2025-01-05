@@ -1,12 +1,8 @@
 All ng stuff
 Add chakra
 Make things accessible
-Cleanup everything (including formatting)
+Cleanup everything - in right files etc.
 React Query
-All error handling (search .error in other codebase)
 
 
-
-Error handling for all api stuff
-Stuff happening for playlist uri with specific code in other one
 readme

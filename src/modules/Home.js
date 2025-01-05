@@ -3,108 +3,14 @@ import Head from "next/head";
 import Image from "next/image";
 import { Inter } from "next/font/google";
 import { useRouter } from "next/router";
-import { useParams } from "next/navigation";
 import { useState } from "react";
 import SearchArtist from "@/components/SearchArtist";
 import SetlistPicker from "@/components/SetlistPicker";
 import axios from "axios";
 import SetlistExplorer from "@/components/SetlistExplorer";
+import { setlistSorter } from "@/utils/setlist";
 
 const inter = Inter({ subsets: ["latin"] });
-
-function averageSetLength(sets) {
-  let avg = 0;
-  const buffer = 2;
-  for (let i = 0; i < sets.length; i++) {
-    if (Array.isArray(sets[i].set)) {
-      avg += sets[i].set.length;
-    }
-  }
-  avg /= sets.length;
-  return Math.ceil(avg) + buffer;
-}
-
-function setlistSorter(setlistData) {
-  const averages = { songs: [], avgLength: 0 };
-  let sortedSetlist = setlistData.filter(
-    (setlist) =>
-      typeof setlist.sets.set === "object" || Array.isArray(setlist.sets.set)
-  );
-  if (sortedSetlist.length === 0) {
-    return false;
-  }
-  sortedSetlist = sortedSetlist
-    .map((setlist) => {
-      const concert = {
-        artist: setlist.artist["name"],
-        set: [],
-        title: `${setlist["eventDate"]} - ${setlist.venue.city["name"]} - ${setlist.venue.city["stateCode"]}`,
-      };
-      if (Array.isArray(setlist.sets.set)) {
-        if (setlist.sets.set.length < 1) {
-          return null;
-        }
-        for (let i = 0; i < setlist.sets.set.length; i++) {
-          concert.set = concert.set.concat(setlist.sets.set[i].song);
-        }
-      } else if (typeof setlist.sets.set === "object") {
-        concert.set = setlist.sets.set.song;
-      }
-      for (let i = 0; i < concert.set.length; i++) {
-        const found = averages.songs.findIndex((song) => {
-          return song["name"] === concert.set[i]["name"];
-        });
-        if (found !== -1) {
-          averages.songs[found].occurrence += 1;
-          averages.songs[found].avgPlace.push(i);
-        } else {
-          concert.set[i].occurrence = 1;
-          concert.set[i].avgPlace = [i];
-          averages.songs.push(concert.set[i]);
-        }
-      }
-      return concert;
-    })
-    .filter((concert) => concert);
-  const averageSet = calcTypicalSet(averages, sortedSetlist);
-  sortedSetlist.unshift({
-    set: averageSet,
-    title: `A Typical Recent ${sortedSetlist[1].artist} Set`,
-    artist: sortedSetlist[1].artist,
-  });
-  return sortedSetlist;
-}
-
-function calcTypicalSet(averages, setlists) {
-  averages.avgLength = averageSetLength(setlists);
-  averages.songs.sort((a, b) => {
-    if (a.occurrence < b.occurrence) {
-      return 1;
-    }
-    if (a.occurrence > b.occurrence) {
-      return -1;
-    }
-    return 0;
-  });
-  let averageSet = averages.songs.slice(0, averages.avgLength);
-  averageSet = averageSet.map((song) => {
-    song.avgPlace = song.avgPlace.reduce((total, place) => {
-      return total + place;
-    });
-    song.avgPlace /= song.occurrence;
-    return song;
-  });
-  averageSet.sort((a, b) => {
-    if (a.avgPlace > b.avgPlace) {
-      return 1;
-    }
-    if (a.avgPlace < b.avgPlace) {
-      return -1;
-    }
-    return 0;
-  });
-  return averageSet;
-}
 
 const SPOTIFY_LOGIN_LINK = `https://accounts.spotify.com/authorize?client_id=${
   process.env.NEXT_PUBLIC__SPOTIFY_CLIENT_ID
@@ -128,13 +34,19 @@ export default function Home() {
 
   useEffect(() => {
     const getSetlists = async () => {
-      setSetlists(null);
-      const { data: setlistData } = await axios.get(
-        `/api/setlists?artist=${selectedArtist}`
-      );
-      const formattedSetlists = setlistSorter(setlistData.setlists);
+      setError(null);
 
-      setSetlists(formattedSetlists);
+      setSetlists(null);
+      try {
+        const { data: setlistData } = await axios.get(
+          `/api/setlists?artist=${selectedArtist}`
+        );
+        const formattedSetlists = setlistSorter(setlistData.setlists);
+        setSetlists(formattedSetlists);
+      } catch (error) {
+        console.error(error);
+        setError("Sorry, no setlist info on that artist found");
+      }
     };
 
     if (selectedArtist) {
@@ -180,12 +92,14 @@ export default function Home() {
               <SearchArtist
                 selectedArtist={selectedArtist}
                 setSelectedArtist={onSetArtist}
+                setError={setError}
               />
               {setlists ? (
                 <SetlistPicker
                   setlists={setlists}
                   selectedSetlist={selectedSetlist}
                   setSelectedSetlist={setSelectedSetlist}
+                  setError={setError}
                 />
               ) : null}
               {selectedSetlist !== null ? (
@@ -193,6 +107,7 @@ export default function Home() {
                   selectedSetlist={setlists[selectedSetlist]}
                   playlistUri={playlistUri}
                   setPlaylistUri={setPlaylistUri}
+                  setError={setError}
                 />
               ) : null}
             </>

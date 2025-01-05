@@ -2,42 +2,41 @@ import axios from "axios";
 
 const { useState } = require("react");
 
-const SearchArtist = ({ selectedArtist, setSelectedArtist }) => {
-  const [artist, setArtist] = useState();
+const SearchArtist = ({ selectedArtist, setSelectedArtist, setError }) => {
+  const [artist, setArtist] = useState("");
   const [artists, setArtists] = useState([]);
   const [displayIndex, setDisplayIndex] = useState(0);
 
   const getArtist = async () => {
+    setError(null);
+
     const response = await axios.get(
       `https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent(
         artist
       )}&fmt=json`
-      // {
-      //   headers: {
-      //     "User-Agent": "ReadySetListen/0.0.1 ( mickalsipjohnson@gmail.com )",
-      //   },
-      // }
     );
 
-    if (response.status === 503) {
-      //   res.json({ error: "Servers Busy" });
-    } else if (response.status === 200) {
+    if (response.status === 200) {
       setArtists(response.data.artists);
     } else {
-      //   res.json({ error: "Server Error" });
+      setError("Hmmm something went wrong - try again in a second");
     }
   };
 
   const searchArtist = (event) => {
     if (event.key === "Enter") {
-      getArtist();
+      if (artist.length < 1) {
+        setError("No artist entered");
+      } else {
+        getArtist();
+      }
     }
   };
 
   const filteredArtists = artists.slice(displayIndex, displayIndex + 3);
 
   return (
-    <div id="search-container" ng-if="searchable">
+    <div id="search-container">
       <div className="sub-container">
         <label>Search artist to create setlist-based Spotify playlist</label>
         <input
