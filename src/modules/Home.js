@@ -23,10 +23,7 @@ const SPOTIFY_LOGIN_LINK = `https://accounts.spotify.com/authorize?client_id=${
 export default function Home() {
   const { asPath } = useRouter();
   const [hash, setHash] = useState(null);
-  // const [selectedArtist, setSelectedArtist] = useState(null);
-  const [selectedArtist, setSelectedArtist] = useState(
-    "9e53f84d-ef44-4c16-9677-5fd4d78cbd7d"
-  );
+  const [selectedArtist, setSelectedArtist] = useState(null);
   const [selectedSetlist, setSelectedSetlist] = useState(null);
   const [setlists, setSetlists] = useState(null);
   const [playlistUri, setPlaylistUri] = useState(null);
@@ -61,6 +58,11 @@ export default function Home() {
   const onSetArtist = (artistId) => {
     setSelectedSetlist(null);
     setSelectedArtist(artistId);
+  };
+
+  const onSelectSetlist = (setlist) => {
+    setPlaylistUri(null);
+    setSelectedSetlist(setlist);
   };
 
   return (
@@ -98,7 +100,7 @@ export default function Home() {
                 <SetlistPicker
                   setlists={setlists}
                   selectedSetlist={selectedSetlist}
-                  setSelectedSetlist={setSelectedSetlist}
+                  setSelectedSetlist={onSelectSetlist}
                   setError={setError}
                 />
               ) : null}

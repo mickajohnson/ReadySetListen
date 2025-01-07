@@ -12,7 +12,8 @@
     "axios": "^1.7.2",
     "next": "14.2.5",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "string-similarity-js": "^2.1.4"
   },
   "devDependencies": {
     "@types/node": "20.14.10",
