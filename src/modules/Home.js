@@ -75,7 +75,12 @@ export default function Home() {
       </Head>
       <main>
         <div id="header">
-          <img id="logo" src="../logo.png" />
+          <Image
+            src="/logo.png"
+            width={350}
+            height={213}
+            alt="ReadySetListen Logo"
+          />
         </div>
         <div id="error">
           <p>{error}</p>

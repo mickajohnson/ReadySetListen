@@ -22,6 +22,7 @@ export function setlistSorter(setlistData) {
   sortedSetlist = sortedSetlist
     .map((setlist) => {
       const concert = {
+        id: setlist.id,
         artist: setlist.artist["name"],
         set: [],
         title: `${setlist["eventDate"]} - ${setlist.venue.city["name"]} - ${setlist.venue.city["stateCode"]}`,
@@ -54,6 +55,7 @@ export function setlistSorter(setlistData) {
     .filter((concert) => concert);
   const averageSet = calcTypicalSet(averages, sortedSetlist);
   sortedSetlist.unshift({
+    id: "avg",
     set: averageSet,
     title: `A Typical Recent ${sortedSetlist[1].artist} Set`,
     artist: sortedSetlist[1].artist,

@@ -1,7 +1,9 @@
+v1.1
 Add chakra
+reacy query
 Make things accessible
-Cleanup everything - in right files etc.
-React Query
+beter readme
 
 
-readme
+v2
+redesign

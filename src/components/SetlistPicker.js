@@ -6,7 +6,7 @@ const SetlistPicker = ({ setlists, setSelectedSetlist, selectedSetlist }) => {
           <ul>
             {setlists.map((setlist, index) => (
               <li
-                key={index} // TODO Fix
+                key={setlist.id}
                 className={index === selectedSetlist ? "selected_setlist" : ""}
                 onClick={() => setSelectedSetlist(index)}
               >
