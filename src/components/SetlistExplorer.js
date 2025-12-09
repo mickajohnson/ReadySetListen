@@ -1,13 +1,6 @@
 import { createPlaylist } from "@/utils/playlist";
 import { useRouter } from "next/router";
 
-function getAcessToken(hash) {
-  if (hash.substring(0, 6) === "access") {
-    return hash.substring(13, hash.search("&"));
-  }
-  return undefined;
-}
-
 const SetlistExplorer = ({
   selectedSetlist,
   playlistUri,
@@ -19,16 +12,13 @@ const SetlistExplorer = ({
   const onCreatePlaylistClick = async () => {
     setError(null);
 
-    const accessToken = getAcessToken(router.asPath.split("#")[1]);
+    const { token } = router.query;
 
     if (selectedSetlist === undefined) {
       setError("No setlist selected");
     } else {
-      if (accessToken) {
-        const playlistRepsonse = await createPlaylist(
-          selectedSetlist,
-          accessToken
-        );
+      if (code) {
+        const playlistRepsonse = await createPlaylist(selectedSetlist, token);
 
         if (playlistRepsonse.success) {
           setPlaylistUri(playlistRepsonse.uri);
