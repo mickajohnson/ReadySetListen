@@ -16,7 +16,7 @@ const SPOTIFY_LOGIN_LINK = `https://accounts.spotify.com/authorize?client_id=${
   process.env.NEXT_PUBLIC__SPOTIFY_CLIENT_ID
 }&redirect_uri=${encodeURIComponent(
   process.env.NEXT_PUBLIC__CALLBACK_URL
-)}&scope=user-read-private%20user-read-email%20playlist-modify-public%20playlist-read-private%20playlist-modify-private&response_type=token&state=${
+)}&scope=user-read-private%20user-read-email%20playlist-modify-public%20playlist-read-private%20playlist-modify-private&response_type=code&state=${
   process.env.NEXT_PUBLIC__SPOTIFY_STATE
 }`;
 
