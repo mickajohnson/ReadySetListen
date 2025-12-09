@@ -22,6 +22,7 @@ const SPOTIFY_LOGIN_LINK = `https://accounts.spotify.com/authorize?client_id=${
 
 export default function Home() {
   const { asPath } = useRouter();
+  const { token } = router.query;
   const [hash, setHash] = useState(null);
   const [selectedArtist, setSelectedArtist] = useState(null);
   const [selectedSetlist, setSelectedSetlist] = useState(null);
@@ -86,7 +87,7 @@ export default function Home() {
           <p>{error}</p>
         </div>
         <div id="main-body">
-          {!hash ? (
+          {!hash && !token ? (
             <div id="login-container">
               <div className="sub-container">
                 <a className="login" href={SPOTIFY_LOGIN_LINK}>
@@ -122,7 +123,7 @@ export default function Home() {
         </div>
         <div id="footer">
           <div className="footer-div footer-div-1">
-            {hash ? (
+            {hash | token ? (
               <p>
                 <a className="login" href={SPOTIFY_LOGIN_LINK}>
                   Log Back in
