@@ -17,7 +17,7 @@ const SetlistExplorer = ({
     if (selectedSetlist === undefined) {
       setError("No setlist selected");
     } else {
-      if (code) {
+      if (token) {
         const playlistRepsonse = await createPlaylist(selectedSetlist, token);
 
         if (playlistRepsonse.success) {
