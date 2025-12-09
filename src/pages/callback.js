@@ -33,7 +33,7 @@ export const getServerSideProps = async (context) => {
       new URLSearchParams({
         grant_type: "authorization_code",
         code: code,
-        redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
+        redirect_uri: process.env.NEXT_PUBLIC__CALLBACK_URL,
       }).toString(),
       {
         headers: {
