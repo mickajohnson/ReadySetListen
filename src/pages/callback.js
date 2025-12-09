@@ -1,3 +1,5 @@
+import axios from "axios";
+
 export default () => {};
 
 export const getServerSideProps = async (context) => {
